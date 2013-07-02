@@ -7,7 +7,7 @@ import qualified Data.Set as S
 
 data ManaSymbol = Mana Color
                 | Colorless Integer
-                | VarColorless String
+                | VarColorless String (Maybe Integer)
                 | Hybrid ManaSymbol ManaSymbol
                 | PhyrexianMana Color
                 | SnowMana
@@ -20,7 +20,7 @@ instance Show ManaSymbol where
     show (Mana Red)            = "{R}"
     show (Mana Green)          = "{G}"
     show (Colorless n)         = "{" ++ show n ++ "}"
-    show (VarColorless s)      = "{" ++ s ++ "}"
+    show (VarColorless s _)    = "{" ++ s ++ "}"
     show (Hybrid a b)          = "{" ++ show a ++ "/" ++ show b ++ "}"
     show (PhyrexianMana White) = "{P/W}"
     show (PhyrexianMana Blue)  = "{P/U}"
@@ -38,10 +38,11 @@ instance Show ManaCost where
 {- Compute converted mana costs -}
 convert :: ManaCost -> Integer
 convert (ManaCost ms) = sum . (map convertSymbol) $ ms
-    where convertSymbol (Colorless n)    = n 
-          convertSymbol (VarColorless _) = 0
-          convertSymbol (Hybrid a b)     = max (convertSymbol a) (convertSymbol b)
-          convertSymbol _                = 1
+    where convertSymbol (Colorless n)              = n 
+          convertSymbol (VarColorless _ Nothing)   = 0
+          convertSymbol (VarColorless _ (Just n))  = n
+          convertSymbol (Hybrid a b)               = max (convertSymbol a) (convertSymbol b)
+          convertSymbol _                          = 1
 
 {- Compute the set of colors present in a given mana cost -}
 colors :: ManaCost -> S.Set Color
@@ -51,12 +52,14 @@ colors (ManaCost ms) = S.unions . map symbolColors $ ms
           symbolColors (Hybrid a b) = S.union (symbolColors a) (symbolColors b)
           symbolColors SnowMana = S.empty
           symbolColors (Colorless _) = S.empty
-          symbolColors (VarColorless _) = S.empty
+          symbolColors (VarColorless _ _) = S.empty
 
 {- Some Tests -}
 rr2 = ManaCost [Colorless 2, Mana Red, Mana Red]
 wwu1 = ManaCost [Colorless 1, Mana White, Mana White, Mana Blue]
 c4 = ManaCost [Colorless 4]
+fireball = ManaCost [VarColorless "X" Nothing, Mana Red]
+fireball5 = ManaCost [VarColorless "X" (Just 5), Mana Red]
 bpod = ManaCost [Colorless 3, PhyrexianMana Green]
 reaper = ManaCost [Hybrid (Colorless 2) (Mana White),
     Hybrid (Colorless 2) (Mana Blue),

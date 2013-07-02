@@ -1,10 +1,11 @@
 module Magick.Object.Predicates where
 
-import Magick.Object
-import Magick.Type
+import Data.Set
 import Magick.Color
 import Magick.Mana
-import Data.Set
+import Magick.Object
+import Magick.Type
+import Magick.Zone
 
 type ObjPredicate = Object -> Bool
 
@@ -25,16 +26,16 @@ infix 4 <=?
 infix 4 >=?
 infix 4 ==?
 
-(<?) :: (Object -> Integer) -> Integer -> ObjPredicate
+(<?) :: (Ord a) => (Object -> a) -> a -> ObjPredicate
 f <? n = \obj -> f obj < n
 
-(>?) :: (Object -> Integer) -> Integer -> ObjPredicate
+(>?) :: (Ord a) => (Object -> a) -> a -> ObjPredicate
 f >? n = \obj -> f obj > n
 
-(<=?) :: (Object -> Integer) -> Integer -> ObjPredicate
+(<=?) :: (Ord a) => (Object -> a) -> a -> ObjPredicate
 f <=? n = \obj -> f obj <= n
 
-(>=?) :: (Object -> Integer) -> Integer -> ObjPredicate
+(>=?) :: (Ord a) => (Object -> a) -> a -> ObjPredicate
 f >=? n = \obj -> f obj >= n
 
 (==?) :: (Eq a) => (Object -> a) -> a -> ObjPredicate
@@ -42,10 +43,23 @@ f ==? x = \obj -> f obj == x
 
 {- Zone/Object Type predicates -}
 
-{- TODO: Check zone assignment. Only things on battlefield are permanents. -}
 permanent :: ObjPredicate
-permanent obj = True
+permanent obj = case zone obj of
+                  Zone { zoneType = Battlefield } -> True
+                  _                               -> False
 
+spell :: ObjPredicate
+spell obj = case zone obj of
+              Zone { zoneType = Stack } -> True
+              _                         -> False
+
+card :: ObjPredicate
+card obj = case zone obj of 
+             Zone { zoneType = Battlefield } -> False
+             Zone { zoneType = Stack }       -> False
+             _                               -> True
+
+{- This would count a triggered ability on the stack as a token -}
 token :: ObjPredicate
 token = not . isCard 
 

@@ -2,16 +2,17 @@
 
 module Magick.Object where
 
-import Data.Set (Set)
-import qualified Data.Set as S
-
 import Data.List (intercalate)
-import Magick.Type
-import Magick.Object.Stuff
-import qualified Magick.Object.Facet as F
-import Magick.Mana hiding (colors)
-import qualified Magick.Mana as Mana (colors)
+import Data.Set (Set)
 import Magick.Color
+import Magick.Mana hiding (colors)
+import Magick.Object.Stuff
+import Magick.Type
+import Magick.Cost
+import qualified Magick.Zone as Z
+import qualified Data.Set as S
+import qualified Magick.Mana as Mana (colors)
+import qualified Magick.Object.Facet as F
 
 data Object = Object {
     oid :: ObjectID,
@@ -31,8 +32,9 @@ data Object = Object {
     planeswalkerTypes :: Set PlaneswalkerType,
     spellTypes :: Set SpellType,
     enchantmentTypes :: Set EnchantmentType,
-    isCard :: Bool
-    {- tokens :: Map TokenType Integer -}
+    isCard :: Bool,
+    zone :: Z.Zone
+    {- counters :: Map CounterType Integer -}
 }
 
 colors = Mana.colors . manaCost
@@ -41,7 +43,8 @@ convertedManaCost = convert . manaCost
 
 {- TODO: Fix spacing where object has no sub/super/types. -}
 instance Show Object where
-    show obj = (name obj) ++ " <" ++ (show $ oid obj) ++ ">"
+    show obj = (name obj) ++ " <" ++ (show $ oid obj) ++ "> " ++
+        (show $ power obj) ++ "/" ++ (show $ toughness obj)
     {-
     show a = (name a) ++ " " ++ (show $ manaCost a) ++ " <" ++ (show $ oid a) ++ ">\n" ++
              showSuperTypes ++ " " ++ showTypes ++ " - " ++ showSubtypes
@@ -84,106 +87,7 @@ fromFacets n fs@(f:rest) = Object {
     planeswalkerTypes = F.planeswalkerTypes f,
     spellTypes = F.spellTypes f,
     enchantmentTypes = F.enchantmentTypes f,
-    isCard = True
+    isCard = True,
+    zone = Z.nowhere
 }
-
-
-llanowarFacet = F.Facet {
-    F.name = "Llanowar Elves",
-    F.manaCost = ManaCost [Mana Green],
-    F.power = 1,
-    F.toughness = 1,
-    F.baseLoyalty = 0,
-    F.abilities = ["T: Add G to your mana pool."],
-    F.supertypes = S.empty,
-    F.types = S.singleton Creature,
-    F.creatureTypes = S.fromList [Elf, Druid],
-    F.artifactTypes = S.empty,
-    F.landTypes = S.empty,
-    F.planeswalkerTypes = S.empty,
-    F.spellTypes = S.empty,
-    F.enchantmentTypes = S.empty
-}
-
-arborFacet = F.Facet {
-    F.name = "Dryad Arbor",
-    F.manaCost = ManaCost [],
-    F.power = 1,
-    F.toughness = 1,
-    F.baseLoyalty = 0,
-    F.abilities = [],
-    F.supertypes = S.empty,
-    F.types = S.fromList [Creature, Land],
-    F.creatureTypes = S.fromList [Dryad],
-    F.artifactTypes = S.empty,
-    F.landTypes = S.fromList [Forest],
-    F.planeswalkerTypes = S.empty,
-    F.spellTypes = S.empty,
-    F.enchantmentTypes = S.empty
-}
-
-genjuFacet = F.Facet {
-    F.name = "Genju of the Realm",
-    F.manaCost = ManaCost [Mana White, Mana Blue, Mana Black, Mana Red, Mana Green],
-    F.power = 0,
-    F.toughness = 0,
-    F.baseLoyalty = 0,
-    F.abilities = ["Enchant land",
-                   "{2}: Enchanted land becomes a legendary 8/12 Spirit creature with trample until end of turn. It's still a land.",
-                   "When enchanted land is put into a graveyard, you may return Genju of the Realm from your graveyard to your hand."],
-    F.supertypes = S.fromList [Legendary],
-    F.types = S.fromList [Enchantment],
-    F.creatureTypes = S.empty,
-    F.artifactTypes = S.empty,
-    F.landTypes = S.empty,
-    F.planeswalkerTypes = S.empty,
-    F.spellTypes = S.empty,
-    F.enchantmentTypes = S.fromList [Aura]
-}
-
-ajaniFacet = F.Facet {
-    F.name = "Ajani Vengeant",
-    F.manaCost = ManaCost [Colorless 2, Mana White, Mana Red],
-    F.power = 0,
-    F.toughness = 0,
-    F.baseLoyalty = 3,
-    F.abilities = ["+1: Target permanent doesn't untap during its controller's next untap step.",
-                   "-2: Ajani Vengeant deals 3 damage to target creature or player.",
-                   "-7: Destroy all lands target player controls."],
-    F.supertypes = S.empty,
-    F.types = S.fromList [Planeswalker],
-    F.creatureTypes = S.empty,
-    F.artifactTypes = S.empty,
-    F.landTypes = S.empty,
-    F.planeswalkerTypes = S.fromList [Ajani],
-    F.spellTypes = S.empty,
-    F.enchantmentTypes = S.empty
-}
-
-relicFacet = F.Facet {
-    F.name = "Darksteel Relic",
-    F.manaCost = ManaCost [Colorless 0],
-    F.power = 0,
-    F.toughness = 0,
-    F.baseLoyalty = 0,
-    F.abilities = ["Darksteel Relic is indestructible."],
-    F.supertypes = S.empty,
-    F.types = S.fromList [Artifact],
-    F.creatureTypes = S.empty,
-    F.artifactTypes = S.empty,
-    F.landTypes = S.empty,
-    F.planeswalkerTypes = S.empty,
-    F.spellTypes = S.empty,
-    F.enchantmentTypes = S.empty
-}
-
-llanowar = fromFacets 1 [llanowarFacet]
-arbor = fromFacets 2 [arborFacet]
-genju = fromFacets 3 [genjuFacet]
-ajani = fromFacets 4 [ajaniFacet]
-relic = fromFacets 5 [relicFacet]
-
-tokenLlanowar = llanowar { isCard = False, oid = 6 }
-
-world = S.fromList [llanowar, arbor, genju, ajani, relic, tokenLlanowar]
 
