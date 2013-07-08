@@ -8,9 +8,9 @@ import Magick.Type
 data Facet = Facet {
     name :: String,
     manaCost :: ManaCost,
-    power :: Power,
-    toughness :: Toughness,
-    baseLoyalty :: BaseLoyalty,
+    power :: Maybe Power,
+    toughness :: Maybe Toughness,
+    baseLoyalty :: Maybe BaseLoyalty,
     abilities :: [Ability],
     supertypes :: Set Supertype,
     types :: Set Type,

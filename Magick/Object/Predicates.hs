@@ -4,6 +4,7 @@ import Data.Set
 import Magick.Color
 import Magick.Mana
 import Magick.Object
+import Magick.Player (Player)
 import Magick.Type
 import Magick.Zone
 
@@ -119,3 +120,19 @@ blue = hasColor Blue
 black = hasColor Black
 red = hasColor Red
 green = hasColor Green
+
+{- Control predicates -}
+
+controlledBy :: Player -> ObjPredicate
+controlledBy p = \obj -> p == controller obj
+
+controlledByAny :: Set Player -> ObjPredicate
+controlledByAny players = \obj -> controller obj `member` players
+
+{- Ownership predicates -}
+
+ownedBy :: Player -> ObjPredicate
+ownedBy p = \obj -> p == owner obj
+
+ownedByAny :: Set Player -> ObjPredicate
+ownedByAny players = \obj -> owner obj `member` players

@@ -5,37 +5,66 @@ import Magick.Object
 import Magick.Object.Predicates
 import Magick.Object.Mutators
 
-data Effect = Effect Layer Timestamp ObjPredicate ObjMutator String
+data Effect = Effect { layer :: Layer
+                     , timestamp :: Timestamp
+                     , selector :: ObjPredicate
+                     , mutator :: ObjMutator
+                     , text :: String }
 
 instance Eq Effect where
-    (Effect l1 t1 _ _ _) == (Effect l2 t2 _ _ _) = l1 == l2 && t1 == t2
+    e1 == e2 = (layer e1      == layer e2) &&
+               (timestamp e1  == timestamp e2) &&
+               (text e1       == text e2)
 
 instance Ord Effect where
-     (Effect l1 t1 _ _ _) `compare` (Effect l2 t2 _ _ _)
-        | l1 == l2  = t1 `compare` t2
-        | otherwise = l1 `compare` l2
+    e1 `compare` e2 = (layer e1, timestamp e1, text e1) `compare`
+                      (layer e2, timestamp e2, text e2)
 
 instance Show Effect where
-    show (Effect l t _ _ s) = "[" ++ show l ++ show t ++ "] <" ++ s ++ ">"
+    show e = "[" ++
+             (show $ layer e) ++ " " ++ (show $ timestamp e) ++
+             "] <" ++ text e ++ ">"
 
 type Timestamp = Integer
 
 data Layer = Copy
            | Control
            | Text
+           | CharacteristicTypes
            | Types
+           | CharacteristicColors
+           | Colors
            | Abilities
-           | PTCharacteristic
+           | CharacteristicPT
            | PTSet
            | PTModify
            | PTCounters
            | PTSwitch
            deriving (Eq, Ord, Show)
 
-allCreaturesPlus1Plus1   = Effect PTModify 5 (permanent &&? creature) (1 +/+ 1) "--"
-redCreaturesMinus2Minus2 = Effect PTModify 6 (permanent &&? creature &&? red) (2 -/- 2) "--"
-switchAllPT              = Effect PTSwitch 9 (permanent &&? creature) switchPT "--"
+allCreaturesPlus1Plus1 = Effect { layer = PTModify
+                                , timestamp = 5
+                                , selector = permanent &&? creature
+                                , mutator = 1 +/+ 1
+                                , text = "Creatures get +1/+1." }
+
+redCreaturesMinus2Minus2 = Effect { layer = PTModify
+                                  , timestamp = 6
+                                  , selector = permanent &&? creature &&? red
+                                  , mutator = (2 -/- 2)
+                                  , text = "Red creatures get -2/-2." }
+
+switchAllPT = Effect { layer = PTSwitch
+                     , timestamp = 9
+                     , selector = permanent &&? creature
+                     , mutator = switchPT
+                     , text = "Switch each creatures power and toughness." }
 
 applyEffect :: Effect -> S.Set Object -> S.Set Object
-applyEffect (Effect _ _ pred mut _) = S.map conditionalApply
-    where conditionalApply obj = if pred obj then mut obj else obj
+applyEffect e = S.map conditionalApply
+    where conditionalApply obj = if sel obj then mut obj else obj
+          sel = selector e
+          mut = mutator e
+
+applyAll :: S.Set Object -> [Effect] -> S.Set Object
+applyAll = foldl (flip applyEffect)
