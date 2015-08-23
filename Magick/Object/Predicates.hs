@@ -7,6 +7,7 @@ import Magick.Object
 import Magick.Player (Player)
 import Magick.Type
 import Magick.Zone
+import Control.Lens
 
 type ObjPredicate = Object -> Bool
 
@@ -45,29 +46,29 @@ f ==? x = \obj -> f obj == x
 {- Zone/Object Type predicates -}
 
 permanent :: ObjPredicate
-permanent obj = case zone obj of
+permanent obj = case obj ^. zone of
                   Zone { zoneType = Battlefield } -> True
                   _                               -> False
 
 spell :: ObjPredicate
-spell obj = case zone obj of
+spell obj = case obj ^. zone of
               Zone { zoneType = Stack } -> True
               _                         -> False
 
 card :: ObjPredicate
-card obj = case zone obj of 
+card obj = case obj ^. zone of 
              Zone { zoneType = Battlefield } -> False
              Zone { zoneType = Stack }       -> False
              _                               -> True
 
 {- This would count a triggered ability on the stack as a token -}
 token :: ObjPredicate
-token = not . isCard 
+token = not . card 
 
 {- Simple type predicates -}
 
 hasType :: Type -> ObjPredicate
-hasType t obj = t `member` (types obj)
+hasType t obj = t `member` (obj ^. types)
 
 creature :: ObjPredicate
 creature = hasType Creature
@@ -93,27 +94,27 @@ sorcery = hasType Sorcery
 {- Subtype predicates -}
 
 creatureType :: CreatureType -> ObjPredicate
-creatureType t obj = t `member` (creatureTypes obj)
+creatureType t obj = t `member` (obj ^. creatureTypes)
 
 artifactType :: ArtifactType -> ObjPredicate
-artifactType t obj = t `member` (artifactTypes obj)
+artifactType t obj = t `member` (obj ^. artifactTypes)
 
 planeswalkerType :: PlaneswalkerType -> ObjPredicate
-planeswalkerType t obj = t `member` (planeswalkerTypes obj)
+planeswalkerType t obj = t `member` (obj ^. planeswalkerTypes)
 
 landType :: LandType -> ObjPredicate
-landType t obj = t `member` (landTypes obj)
+landType t obj = t `member` (obj ^. landTypes)
 
 spellType :: SpellType -> ObjPredicate
-spellType t obj = t `member` (spellTypes obj)
+spellType t obj = t `member` (obj ^. spellTypes)
 
 enchantmentType :: EnchantmentType -> ObjPredicate
-enchantmentType t obj = t `member` (enchantmentTypes obj)
+enchantmentType t obj = t `member` (obj ^. enchantmentTypes)
 
 {- Simple color predicates -}
 
 hasColor :: Color -> ObjPredicate
-hasColor c obj = c `member` (Magick.Object.colors obj)
+hasColor c obj = c `member` (obj ^. Magick.Object.colors)
 
 white = hasColor White
 blue = hasColor Blue
@@ -124,15 +125,16 @@ green = hasColor Green
 {- Control predicates -}
 
 controlledBy :: Player -> ObjPredicate
-controlledBy p = \obj -> p == controller obj
+controlledBy p = \obj -> p == (obj ^. controller)
 
 controlledByAny :: Set Player -> ObjPredicate
-controlledByAny players = \obj -> controller obj `member` players
+controlledByAny players = \obj -> (obj ^. controller) `member` players
 
 {- Ownership predicates -}
 
 ownedBy :: Player -> ObjPredicate
-ownedBy p = \obj -> p == owner obj
+ownedBy p = \obj -> p == (obj ^. owner)
 
 ownedByAny :: Set Player -> ObjPredicate
-ownedByAny players = \obj -> owner obj `member` players
+ownedByAny players = \obj -> (obj ^. owner) `member` players
+

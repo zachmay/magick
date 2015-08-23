@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FunctionalDependencies #-}
+
 module Magick.Zone where
 
 type ZoneID = Integer
@@ -37,3 +39,4 @@ mkLibrary     = mkZone Library     Hidden
 mkStack       = mkZone Stack       Public
 
 nowhere = mkZone Nowhere Public (negate 1) "Nowhere"
+

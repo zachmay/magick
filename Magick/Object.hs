@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleInstances, OverlappingInstances, TypeSynonymInstances #-}
 
 module Magick.Object where
@@ -7,6 +8,7 @@ import Data.List (intercalate)
 import Data.Set (Set)
 import Data.Maybe (fromJust)
 
+import Control.Lens
 import Control.Monad (liftM2)
 
 import Magick.Color
@@ -22,44 +24,48 @@ import qualified Magick.Mana as Mana (colors)
 import qualified Magick.Object.Facet as F
 import qualified Magick.Zone as Z
 
-data Object = Object { oid :: ObjectID
-                     , facets :: [F.Facet]
-                     , baseFacet :: F.Facet
-                     , name :: String
-                     , manaCost :: ManaCost
-                     , power :: Maybe Power
-                     , toughness :: Maybe Toughness
-                     , baseLoyalty :: Maybe BaseLoyalty
-                     , abilities :: [Ability]
-                     , supertypes :: Set Supertype
-                     , types :: Set Type
-                     , creatureTypes :: Set CreatureType
-                     , artifactTypes :: Set ArtifactType
-                     , landTypes :: Set LandType
-                     , planeswalkerTypes :: Set PlaneswalkerType
-                     , spellTypes :: Set SpellType
-                     , enchantmentTypes :: Set EnchantmentType
-                     , isCard :: Bool
-                     , zone :: Z.Zone
-                     , controller :: Player
-                     , owner :: Player
+data Object = Object { _oid :: ObjectID
+                     , _facets :: [F.Facet]
+                     , _baseFacet :: F.Facet
+                     , _name :: String
+                     , _manaCost :: ManaCost
+                     , _colors :: Set Color
+                     , _power :: Maybe Power
+                     , _toughness :: Maybe Toughness
+                     , _baseLoyalty :: Maybe BaseLoyalty
+                     , _abilities :: [Ability]
+                     , _supertypes :: Set Supertype
+                     , _types :: Set Type
+                     , _creatureTypes :: Set CreatureType
+                     , _artifactTypes :: Set ArtifactType
+                     , _landTypes :: Set LandType
+                     , _planeswalkerTypes :: Set PlaneswalkerType
+                     , _spellTypes :: Set SpellType
+                     , _enchantmentTypes :: Set EnchantmentType
+                     , _isCard :: Bool
+                     , _zone :: Z.Zone
+                     , _controller :: Player
+                     , _owner :: Player
     {- counters :: Map CounterType Integer -}
 }
 
-colors = Mana.colors . manaCost
+makeLenses ''Object
 
-convertedManaCost = convert . manaCost
+_convertedManaCost obj = convert . _manaCost $ obj
+
+convertedManaCost :: Getter Object Integer
+convertedManaCost = to (convert . _manaCost)
 
 {- TODO: Fix spacing where object has no sub/super/types. -}
 instance Show Object where
-    show obj = "<" ++ (show $ oid obj) ++ "> "
-               ++ name obj
-               ++ " [" ++ (show $ controller obj) ++ "] "
+    show obj = "<" ++ (show $ _oid obj) ++ "> "
+               ++ _name obj
+               ++ " [" ++ (show $ _controller obj) ++ "] "
                ++ powerToughness
-                 where powerToughness | power obj == Nothing = ""
-                                      | otherwise            = (show . fromJust $ power obj)
+                 where powerToughness | _power obj == Nothing = ""
+                                      | otherwise            = (show . fromJust $ _power obj)
                                                                 ++ "/"
-                                                                ++ (show .fromJust  $ toughness obj)
+                                                                ++ (show . fromJust$ _toughness obj)
     {-
     show a = (name a) ++ " " ++ (show $ manaCost a) ++ " <" ++ (show $ oid a) ++ ">\n" ++
              showSuperTypes ++ " " ++ showTypes ++ " - " ++ showSubtypes
@@ -78,33 +84,33 @@ instance Show Object where
 
 
 instance Eq Object where
-    a == b = oid a == oid b
+    a == b = _oid a == _oid b
 
 instance Ord Object where
-    compare = compare `on` oid
+    compare = compare `on` _oid
 
 fromFacets :: ObjectID -> Player -> [F.Facet] -> Object
-fromFacets n p fs@(f:rest) = Object {
-    oid = n,
-    facets = fs,
-    baseFacet = f,
-    name = F.name f,
-    manaCost = F.manaCost f,
-    power = F.power f,
-    toughness = F.toughness f,
-    baseLoyalty = F.baseLoyalty f,
-    abilities = F.abilities f,
-    supertypes = F.supertypes f,
-    types = F.types f,
-    creatureTypes = F.creatureTypes f,
-    artifactTypes = F.artifactTypes f,
-    landTypes = F.landTypes f,
-    planeswalkerTypes = F.planeswalkerTypes f,
-    spellTypes = F.spellTypes f,
-    enchantmentTypes = F.enchantmentTypes f,
-    isCard = True,
-    zone = Z.nowhere,
-    controller = p,
-    owner = p
+fromFacets n player fs@(f:rest) = Object {
+    _oid = n,
+    _facets = fs,
+    _baseFacet = f,
+    _name = F.name f,
+    _manaCost = F.manaCost f,
+    _power = F.power f,
+    _toughness = F.toughness f,
+    _colors = Mana.colors $ F.manaCost f,
+    _baseLoyalty = F.baseLoyalty f,
+    _abilities = F.abilities f,
+    _supertypes = F.supertypes f,
+    _types = F.types f,
+    _creatureTypes = F.creatureTypes f,
+    _artifactTypes = F.artifactTypes f,
+    _landTypes = F.landTypes f,
+    _planeswalkerTypes = F.planeswalkerTypes f,
+    _spellTypes = F.spellTypes f,
+    _enchantmentTypes = F.enchantmentTypes f,
+    _isCard = True,
+    _zone = Z.nowhere,
+    _owner = player,
+    _controller = player
 }
-
